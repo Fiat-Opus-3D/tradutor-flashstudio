@@ -1,0 +1,33 @@
+# Gera o TradutorFlashStudio.exe e publica a Release quando entra uma tag vX.Y.Z.
+# Atualização só de traduções não precisa de tag: o .exe baixa o traducoes_flashforge.po da branch main.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Gerar .exe
+        run: |
+          python -m pip install -r requirements.txt
+          python -m PyInstaller --onefile --console --clean --name TradutorFlashStudio --add-data "traducoes_flashforge.po;." tradutor_flashstudio.py
+      - name: Publicar Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/TradutorFlashStudio.exe \
+            --title "Tradutor Flash Studio $GITHUB_REF_NAME" \
+            --notes "Baixe o TradutorFlashStudio.exe, feche o Flash Studio, rode e escolha a opção 1. Instruções completas no README."
